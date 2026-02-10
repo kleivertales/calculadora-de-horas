@@ -83,7 +83,7 @@ function App() {
    * - Adiciona novo registro ao array (ou atualiza um existente, se estiver em edição)
    * - Ordena por data, atualiza next date e limpa campos
    */
-  const adicionarRegistro = () => {
+    const adicionarRegistro = () => {
     let registro;
 
     // Caso não tenha entrada nem saída, é considerado um dia de folga
@@ -99,34 +99,47 @@ function App() {
     else {
       let horas, minutos;
 
-      // Se o usuário quiser editar manualmente o resultado
       if (horasEdit || minutosEdit) {
         horas = Number(horasEdit) || 0;
         minutos = Number(minutosEdit) || 0;
       } else {
-        // Calcula a diferença de tempo entre entrada e saída
         const [hEntrada, mEntrada] = entrada.split(":").map(Number);
         const [hSaida, mSaida] = saida.split(":").map(Number);
         const dataEntrada = new Date(0, 0, 0, hEntrada, mEntrada);
         const dataSaida = new Date(0, 0, 0, hSaida, mSaida);
-        if (dataSaida < dataEntrada) dataSaida.setDate(dataSaida.getDate() + 1); // Passou da meia-noite
+        if (dataSaida < dataEntrada) dataSaida.setDate(dataSaida.getDate() + 1);
         const diffMs = dataSaida - dataEntrada;
         horas = Math.floor(diffMs / 1000 / 60 / 60);
         minutos = Math.floor((diffMs / 1000 / 60) % 60);
       }
 
-      // Cria o objeto do registro
       registro = { data, entrada, saida, horas, minutos, folga: false, vazio: false };
     }
 
-    // Adiciona ou atualiza o registro no array
     const novosRegistros = [...registros];
-    if (editandoIndex !== null) {
-      // Atualiza registro
+
+    // 🔹 Verifica se já existe um registro com a mesma data
+    const existenteIndex = novosRegistros.findIndex((r) => r.data === data);
+
+    if (existenteIndex !== -1 && editandoIndex === null) {
+      // Já existe um registro para essa data — pergunta se deve substituir
+      const confirmar = window.confirm(
+        `Já existe um registro para ${formatarDataBR(data)}.\nDeseja substituir o horário existente?`
+      );
+
+      if (!confirmar) {
+        // Usuário cancelou — não faz nada
+        return;
+      } else {
+        // Substitui o registro existente
+        novosRegistros[existenteIndex] = registro;
+      }
+    } else if (editandoIndex !== null) {
+      // Caso esteja editando um registro específico
       novosRegistros[editandoIndex] = registro;
       setEditandoIndex(null);
     } else {
-      // Adiciona novo registro
+      // Adiciona um novo registro normalmente
       novosRegistros.push(registro);
     }
 
@@ -148,6 +161,7 @@ function App() {
     // Retorna o foco para o campo de entrada
     entradaRef.current?.focus();
   };
+
 
   // ---------------------------
   // 🔹 EDITAR REGISTRO EXISTENTE
