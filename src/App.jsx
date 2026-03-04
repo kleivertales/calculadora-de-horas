@@ -1,440 +1,402 @@
-
-/**
- * App.js
- * Versão React (JavaScript) do seu Controle de Horas
- * - Remove import/export JSON
- * - Adiciona função gerarPDF que cria um PDF do calendário (tabela + total)
- *
- * Comentários detalhados explicam cada função para estudo.
- */
-
 import React, { useState, useEffect, useRef } from "react";
-import "./App.css";
-
-// Biblioteca para gerar PDF no cliente
-// (instalei via `npm install jspdf jspdf-autotable`)
+import "./index.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 function App() {
-
+  // ---------------------- Inicialização do PDF ----------------------
   useEffect(() => {
-  try {
-    const doc = new jsPDF();
-    doc.text("Teste de jsPDF funcionando!", 20, 20);
-    console.log("✅ jsPDF carregado corretamente!");
-  } catch (error) {
-    console.error("❌ Erro ao inicializar jsPDF:", error);
-  }
-}, []);
-  // ---------------------------
-  // 🔹 ESTADOS PRINCIPAIS
-  // ---------------------------
+    try {
+      const doc = new jsPDF();
+      doc.text("Teste de jsPDF funcionando!", 20, 20);
+      console.log("✅ jsPDF carregado corretamente!");
+    } catch (error) {
+      console.error("❌ Erro ao inicializar jsPDF:", error);
+    }
+  }, []);
 
-  // Recupera os registros salvos no localStorage ao iniciar o app
+  // ---------------------- Estados principais ----------------------
   const [registros, setRegistros] = useState(() => {
-    const dadosSalvos = localStorage.getItem("registros");
-    return dadosSalvos ? JSON.parse(dadosSalvos) : [];
+    const salvo = localStorage.getItem("registros");
+    return salvo ? JSON.parse(salvo) : [];
   });
 
-  // Estados dos campos do formulário
   const [data, setData] = useState(() => new Date().toISOString().split("T")[0]);
   const [entrada, setEntrada] = useState("");
   const [saida, setSaida] = useState("");
   const [horasEdit, setHorasEdit] = useState("");
   const [minutosEdit, setMinutosEdit] = useState("");
-  const [editandoIndex, setEditandoIndex] = useState(null); // Índice de registro sendo editado
+  const [editandoIndex, setEditandoIndex] = useState(null);
+  const [editandoHorarioIndex, setEditandoHorarioIndex] = useState(null);
+  const [valorHora, setValorHora] = useState(() => parseFloat(localStorage.getItem("valorHora")) || 10);
 
-  // Refs para manipular o foco dos inputs (Entrada e Saída)
+  // 🔹 Observação vinculada à data
+  const [observacao, setObservacao] = useState("");
+
+  // 🔹 Refs para navegação com Enter
+  const valorHoraRef = useRef(null);
+  const dataRef = useRef(null);
   const entradaRef = useRef(null);
   const saidaRef = useRef(null);
+  const horasRef = useRef(null);
+  const minutosRef = useRef(null);
+  const observacaoRef = useRef(null);
 
-  // ---------------------------
-  // 🔹 LOCALSTORAGE
-  // ---------------------------
+  // 🔹 Ref para tabela, para rolagem automática
+  const tabelaRef = useRef(null);
 
-  // Salva automaticamente os registros sempre que o estado "registros" for alterado
+  // ---------------------- Persistência ----------------------
   useEffect(() => {
     localStorage.setItem("registros", JSON.stringify(registros));
   }, [registros]);
 
-  // ---------------------------
-  // 🔹 FUNÇÕES AUXILIARES
-  // ---------------------------
+  useEffect(() => {
+    localStorage.setItem("valorHora", valorHora);
+  }, [valorHora]);
 
-  /**
-   * formatarDataBR
-   * Recebe uma data no formato ISO (aaaa-mm-dd) e retorna dd/mm/aaaa.
-   * Usado apenas para exibir a data legível na UI e no PDF.
-   */
+  // ---------------------- Carregar observação da data selecionada ----------------------
+  useEffect(() => {
+    const registroDia = registros.find((r) => r.data === data);
+    setObservacao(registroDia?.observacao || "");
+  }, [data, registros]);
+
+  // ---------------------- Funções auxiliares ----------------------
   const formatarDataBR = (dataISO) => {
     const [ano, mes, dia] = dataISO.split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // ---------------------------
-  // 🔹 ADICIONAR REGISTRO
-  // ---------------------------
+  const getDiaSemana = (dataISO) => {
+    const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const d = new Date(dataISO + "T00:00:00");
+    return dias[d.getDay()];
+  };
 
-  /**
-   * adicionarRegistro
-   * - Valida os campos
-   * - Calcula horas/minutos entre entrada e saída (ou usa edição manual)
-   * - Adiciona novo registro ao array (ou atualiza um existente, se estiver em edição)
-   * - Ordena por data, atualiza next date e limpa campos
-   */
-    const adicionarRegistro = () => {
-    let registro;
+  const formatarMoeda = (valor) =>
+    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(valor || 0);
 
-    // Caso não tenha entrada nem saída, é considerado um dia de folga
+  // ---------------------- Adicionar / Atualizar registro ----------------------
+  const adicionarRegistro = () => {
     if (!entrada && !saida) {
-      registro = { data, entrada: "-", saida: "-", horas: 0, minutos: 0, folga: true, vazio: false };
+      atualizarDia({ data, horarios: [], folga: true, vazio: false, observacao });
+      return;
     }
-    // Caso tenha apenas um dos horários preenchidos
-    else if (!entrada || !saida) {
+    if (!entrada || !saida) {
       alert("Preencha os dois horários ou deixe ambos vazios para registrar folga!");
       return;
     }
-    // Caso normal: calcular a diferença entre os horários
-    else {
-      let horas, minutos;
 
-      if (horasEdit || minutosEdit) {
-        horas = Number(horasEdit) || 0;
-        minutos = Number(minutosEdit) || 0;
-      } else {
-        const [hEntrada, mEntrada] = entrada.split(":").map(Number);
-        const [hSaida, mSaida] = saida.split(":").map(Number);
-        const dataEntrada = new Date(0, 0, 0, hEntrada, mEntrada);
-        const dataSaida = new Date(0, 0, 0, hSaida, mSaida);
-        if (dataSaida < dataEntrada) dataSaida.setDate(dataSaida.getDate() + 1);
-        const diffMs = dataSaida - dataEntrada;
-        horas = Math.floor(diffMs / 1000 / 60 / 60);
-        minutos = Math.floor((diffMs / 1000 / 60) % 60);
-      }
-
-      registro = { data, entrada, saida, horas, minutos, folga: false, vazio: false };
-    }
-
-    const novosRegistros = [...registros];
-
-    // 🔹 Verifica se já existe um registro com a mesma data
-    const existenteIndex = novosRegistros.findIndex((r) => r.data === data);
-
-    if (existenteIndex !== -1 && editandoIndex === null) {
-      // Já existe um registro para essa data — pergunta se deve substituir
-      const confirmar = window.confirm(
-        `Já existe um registro para ${formatarDataBR(data)}.\nDeseja substituir o horário existente?`
-      );
-
-      if (!confirmar) {
-        // Usuário cancelou — não faz nada
-        return;
-      } else {
-        // Substitui o registro existente
-        novosRegistros[existenteIndex] = registro;
-      }
-    } else if (editandoIndex !== null) {
-      // Caso esteja editando um registro específico
-      novosRegistros[editandoIndex] = registro;
-      setEditandoIndex(null);
+    let horas, minutos;
+    if (horasEdit || minutosEdit) {
+      horas = Number(horasEdit) || 0;
+      minutos = Number(minutosEdit) || 0;
     } else {
-      // Adiciona um novo registro normalmente
-      novosRegistros.push(registro);
+      const [hEntrada, mEntrada] = entrada.split(":").map(Number);
+      const [hSaida, mSaida] = saida.split(":").map(Number);
+      const dataEntrada = new Date(0, 0, 0, hEntrada, mEntrada);
+      const dataSaida = new Date(0, 0, 0, hSaida, mSaida);
+      if (dataSaida < dataEntrada) dataSaida.setDate(dataSaida.getDate() + 1);
+      const diffMs = dataSaida - dataEntrada;
+      horas = Math.floor(diffMs / 1000 / 60 / 60);
+      minutos = Math.floor((diffMs / 1000 / 60) % 60);
     }
 
-    // Ordena por data antes de salvar
-    novosRegistros.sort((a, b) => new Date(a.data) - new Date(b.data));
-    setRegistros(novosRegistros);
+    const valor = (horas + minutos / 60) * valorHora;
+    const novoHorario = { entrada, saida, horas, minutos, valor };
+    atualizarDia({ data, horarios: [novoHorario], folga: false, vazio: false, observacao });
 
-    // Define próxima data automaticamente
-    const proximaData = new Date(data);
-    proximaData.setDate(proximaData.getDate() + 1);
-    setData(proximaData.toISOString().split("T")[0]);
+    // Avança para o próximo dia automaticamente
+    const novaData = new Date(data);
+    novaData.setDate(novaData.getDate() + 1);
+    setData(novaData.toISOString().split("T")[0]);
 
-    // Limpa os campos
     setEntrada("");
     setSaida("");
     setHorasEdit("");
     setMinutosEdit("");
-
-    // Retorna o foco para o campo de entrada
-    entradaRef.current?.focus();
+    setTimeout(() => entradaRef.current?.focus(), 100);
   };
 
+  // Atualiza ou cria o dia correspondente
+  const atualizarDia = (registroObj) => {
+    const novos = [...registros];
+    const i = novos.findIndex((r) => r.data === registroObj.data);
 
-  // ---------------------------
-  // 🔹 EDITAR REGISTRO EXISTENTE
-  // ---------------------------
+    if (editandoIndex !== null && editandoHorarioIndex !== null) {
+      const atual = novos[editandoIndex];
+      const horarios = [...(atual.horarios || [])];
+      horarios[editandoHorarioIndex] = registroObj.horarios[0];
+      novos[editandoIndex] = { ...atual, horarios, folga: false, vazio: false, observacao: registroObj.observacao };
+      setEditandoIndex(null);
+      setEditandoHorarioIndex(null);
+    } else if (i !== -1) {
+      const existente = novos[i];
+      const horariosAtualizados = [...(existente.horarios || []), ...registroObj.horarios];
+      novos[i] = { ...existente, horarios: horariosAtualizados, folga: false, vazio: false, observacao: registroObj.observacao };
+    } else {
+      novos.push(registroObj);
+      novos.sort((a, b) => new Date(a.data) - new Date(b.data));
+    }
 
-  /**
-   * editarRegistro
-   * - Carrega os dados do registro selecionado no formulário para edição
-   * - Marca o índice em edição para que adicionarRegistro atualize em vez de criar novo
-   */
-  const editarRegistro = (index) => {
-    const r = registros[index];
+    setRegistros(novos);
+
+    // 🔹 Rola tabela automaticamente para o último registro
+    setTimeout(() => {
+      tabelaRef.current?.scrollTo({
+        top: tabelaRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 50);
+  };
+
+  const editarRegistro = (i, j) => {
+    const r = registros[i];
+    const h = r.horarios[j];
     setData(r.data);
-    setEntrada(r.entrada === "-" ? "" : r.entrada);
-    setSaida(r.saida === "-" ? "" : r.saida);
-    setHorasEdit(r.horas || "");
-    setMinutosEdit(r.minutos || "");
-
-    // Marca o registro como ativo para edição (remove sinalizador de 'vazio' se houver)
-    const novos = [...registros];
-    novos[index].vazio = false;
-    setRegistros(novos);
-    setEditandoIndex(index);
-
-    // Move o foco para o campo de entrada
-    entradaRef.current?.focus();
+    setEntrada(h.entrada);
+    setSaida(h.saida);
+    setHorasEdit(h.horas);
+    setMinutosEdit(h.minutos);
+    setEditandoIndex(i);
+    setEditandoHorarioIndex(j);
   };
 
-  // ---------------------------
-  // 🔹 EXCLUIR REGISTRO
-  // ---------------------------
-
-  /**
-   * excluirRegistro
-   * - Em vez de apagar o registro do array, marcamos como 'vazio' para permitir edição/recuperação
-   * - Isso evita perder histórico acidentalmente
-   */
-  const excluirRegistro = (index) => {
+  const excluirRegistro = (i, j) => {
     const novos = [...registros];
-    // Marca o registro como "vazio" (não apaga completamente)
-    novos[index] = { ...novos[index], entrada: "-", saida: "-", horas: 0, minutos: 0, folga: false, vazio: true };
+    const dia = novos[i];
+    const horarios = [...(dia.horarios || [])];
+    horarios.splice(j, 1);
+    novos[i] = { ...dia, horarios };
     setRegistros(novos);
   };
 
-  // ---------------------------
-  // 🔹 LIMPAR TUDO
-  // ---------------------------
-
-  /**
-   * limparTudo
-   * - Confirmação com o usuário antes de apagar todos os registros
-   * - Remove também do localStorage
-   */
   const limparTudo = () => {
-    if (window.confirm("Tem certeza que deseja apagar todos os registros?")) {
-      setRegistros([]); // Limpa o estado
-      localStorage.removeItem("registros"); // Remove do localStorage
+    if (window.confirm("Apagar todos os registros?")) {
+      setRegistros([]);
+      localStorage.removeItem("registros");
     }
   };
 
-  // ---------------------------
-  // 🔹 CÁLCULO DO TOTAL DE HORAS
-  // ---------------------------
-
-  // totalMinutos = soma (horas * 60 + minutos) de todos os registros válidos
-  const totalMinutos = registros.reduce(
-    (acc, r) => (!r.folga && !r.vazio ? acc + r.horas * 60 + r.minutos : acc),
-    0
-  );
+  // ---------------------- Cálculos de totais ----------------------
+  const totalMinutos = registros.reduce((acc, r) => {
+    if (r.folga || r.vazio) return acc;
+    return acc + r.horarios.reduce((s, h) => s + h.horas * 60 + h.minutos, 0);
+  }, 0);
   const totalHoras = Math.floor(totalMinutos / 60);
   const totalMins = totalMinutos % 60;
-  const hoje = new Date().toISOString().split("T")[0];
+  const totalEuros = registros.reduce((acc, r) => {
+    if (r.folga || r.vazio) return acc;
+    return acc + r.horarios.reduce((s, h) => s + (h.valor || 0), 0);
+  }, 0);
 
-  // ---------------------------
-  // 🔹 GERAR PDF DO CALENDÁRIO (CLIENT-SIDE)
-  // ---------------------------
-
-  /**
-   * gerarPDF
-   * - Cria um PDF (A4) com título, data de geração, tabela dos registros e total no final.
-   * - Usa jsPDF + autoTable para converter os dados para uma tabela PDF automaticamente.
-   * - Faz o download automático do arquivo gerado.
-   *
-   * Passos principais:
-   * 1. Verifica se há registros (se não, alerta o usuário)
-   * 2. Monta cabecalhos e corpo (array de arrays) para autoTable
-   * 3. Configura estilo e margens, adiciona título e data
-   * 4. Insere a tabela (autoTable cuida de múltiplas páginas automaticamente)
-   * 5. Adiciona o total de horas abaixo da tabela
-   * 6. Salva o PDF com nome 'controle_de_horas.pdf'
-   */
+  // ---------------------- PDF ----------------------
   const gerarPDF = () => {
-    if (registros.length === 0) {
-      alert("Nenhum registro para gerar o PDF!");
-      return;
-    }
-
-    // Cria instância do jsPDF (unidade em pontos, formato A4)
     const doc = new jsPDF({ unit: "pt", format: "a4" });
-
-    // Título
     doc.setFontSize(18);
     doc.text("Relatório de Controle de Horas", 40, 50);
-
-    // Data de geração
     const dataAtual = new Date().toLocaleDateString("pt-BR");
     doc.setFontSize(11);
     doc.text(`Gerado em: ${dataAtual}`, 40, 70);
 
-    // Cabeçalhos e corpo da tabela
-    const cabecalhos = [["Data", "Entrada", "Saída", "Resultado"]];
-    const corpo = registros.map((r) => [
-      formatarDataBR(r.data),
-      r.entrada,
-      r.saida,
-      r.vazio ? "Registro excluído" : r.folga ? "Folga 💤" : `${r.horas}h ${r.minutos}min`,
-    ]);
+    const cabecalhos = [["Data", "Dia", "Entrada", "Saída", "Resultado", "Valor (€)"]];
+    const corpo = [];
 
-    // Insere a tabela no PDF
+    registros.forEach((r) => {
+      if (r.folga) {
+        corpo.push([formatarDataBR(r.data), getDiaSemana(r.data), "-", "-", "Folga ", "-"]);
+      } else if (r.vazio) {
+        corpo.push([formatarDataBR(r.data), getDiaSemana(r.data), "-", "-", "Excluído", "-"]);
+      } else {
+        r.horarios.forEach((h, idx) => {
+          corpo.push([
+            idx === 0 ? formatarDataBR(r.data) : "",
+            idx === 0 ? getDiaSemana(r.data) : "",
+            h.entrada,
+            h.saida,
+            `${h.horas}h ${h.minutos}min`,
+            formatarMoeda(h.valor),
+          ]);
+        });
+      }
+    });
+
     autoTable(doc, {
       startY: 90,
       head: cabecalhos,
       body: corpo,
-      theme: "grid", // grid, striped, plain
+      theme: "grid",
       styles: { fontSize: 10, halign: "center" },
-      headStyles: { fillColor: [25, 118, 210] }, // azul do header
+      headStyles: { fillColor: [25, 118, 210] },
       margin: { left: 40, right: 40 },
-      // Se a tabela ocupar várias páginas, autoTable cuidará das quebras automaticamente.
     });
 
-    // Posição final da tabela (última Y) — útil para posicionar o total
     const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 110;
-
-    // Total exibido abaixo da tabela
     doc.setFontSize(12);
-    doc.text(`Total: ${totalHoras} horas e ${totalMins} minutos`, 40, finalY);
-
-    // Salva/baixa o PDF
+    doc.text(`Total: ${totalHoras}h ${totalMins}min — ${formatarMoeda(totalEuros)}`, 40, finalY + 10);
+    if (observacao.trim()) {
+      doc.text("Observação:", 40, finalY + 40);
+      doc.text(observacao, 40, finalY + 60, { maxWidth: 500 });
+    }
     doc.save("controle_de_horas.pdf");
   };
 
-  // ---------------------------
-  // 🔹 RENDERIZAÇÃO DO APP
-  // ---------------------------
+  // ---------------------- Navegação com Enter ----------------------
+  const handleKeyDown = (e, nextRef, action = null) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (action) action();
+      else nextRef?.current?.focus();
+    }
+  };
 
+  // ---------------------- Renderização ----------------------
   return (
     <div className="app">
-      {/* Painel Esquerdo - Formulário */}
+      {/* Painel esquerdo fixo (formulário) */}
       <div className="formulario">
-        <div>
-          <h1>Controle de Horas</h1>
+        <h1>Controle de Horas</h1>
 
-          {/* Campo de data */}
-          <label>Data:</label>
-          <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+        <label>Valor por hora (€):</label>
+        <input
+          ref={valorHoraRef}
+          type="number"
+          value={valorHora}
+          onChange={(e) => setValorHora(parseFloat(e.target.value) || 0)}
+          step="0.01"
+          onKeyDown={(e) => handleKeyDown(e, dataRef)}
+        />
 
-          {/* Campo de entrada */}
-          <label>Horário de Entrada:</label>
+        <label>Data:</label>
+        <input
+          ref={dataRef}
+          type="date"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, entradaRef)}
+        />
+
+        <label>Entrada:</label>
+        <input
+          ref={entradaRef}
+          type="time"
+          value={entrada}
+          onChange={(e) => setEntrada(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, saidaRef)}
+        />
+
+        <label>Saída:</label>
+        <input
+          ref={saidaRef}
+          type="time"
+          value={saida}
+          onChange={(e) => setSaida(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, horasRef, adicionarRegistro)}
+        />
+
+        <label>Editar Resultado (opcional):</label>
+        <div className="duplo-campo">
           <input
-            type="time"
-            ref={entradaRef} // usado para foco
-            value={entrada}
-            onChange={(e) => setEntrada(e.target.value)}
-            onKeyDown={(e) => {
-              // Quando pressionar ENTER → vai para o campo "Saída"
-              if (e.key === "Enter") {
-                e.preventDefault();
-                saidaRef.current?.focus();
-              }
-            }}
+            ref={horasRef}
+            type="number"
+            placeholder="Horas"
+            value={horasEdit}
+            onChange={(e) => setHorasEdit(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, minutosRef)}
           />
-
-          {/* Campo de saída */}
-          <label>Horário de Saída:</label>
           <input
-            type="time"
-            ref={saidaRef} // usado para foco
-            value={saida}
-            onChange={(e) => setSaida(e.target.value)}
-            onKeyDown={(e) => {
-              // Quando pressionar ENTER → adiciona registro
-              if (e.key === "Enter") {
-                e.preventDefault();
-                adicionarRegistro();
-              }
-            }}
+            ref={minutosRef}
+            type="number"
+            placeholder="Minutos"
+            value={minutosEdit}
+            onChange={(e) => setMinutosEdit(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, observacaoRef)}
           />
-
-          {/* Edição manual do resultado */}
-          <label>Editar Resultado (opcional):</label>
-          <div style={{ display: "flex", gap: "4%", width: "100%" }}>
-            <input
-              type="number"
-              placeholder="Horas"
-              value={horasEdit}
-              onChange={(e) => setHorasEdit(e.target.value)}
-              min="0"
-              style={{ width: "48%" }}
-            />
-            <input
-              type="number"
-              placeholder="Minutos"
-              value={minutosEdit}
-              onChange={(e) => setMinutosEdit(e.target.value)}
-              min="0"
-              max="59"
-              style={{ width: "48%" }}
-            />
-          </div>
-
-          {/* Botões principais */}
-          <div className="botoes">
-            <button className="btn-add" onClick={adicionarRegistro}>Adicionar</button>
-            <button className="btn-clear" onClick={limparTudo}>Limpar Tudo</button>
-          </div>
-
-          {/* BOTÃO GERAR PDF (substitui Importar/Exportar JSON) */}
-          <div className="botoes" style={{ marginTop: "10px" }}>
-            <button onClick={gerarPDF} style={{ backgroundColor: "#0288d1", width: "100%" }}>
-              Gerar PDF
-            </button>
-          </div>
         </div>
 
-        {/* Total de horas calculado */}
-        <div className="total">
-          Total: {totalHoras} horas e {totalMins} minutos
+        {/* 🔹 Botões */}
+        <div className="botoes">
+          <button className="btn-add" onClick={adicionarRegistro}>
+            {editandoIndex !== null ? "Salvar" : "Adicionar"}
+          </button>
+          <button className="btn-clear" onClick={limparTudo}>
+            Limpar Tudo
+          </button>
+        </div>
+
+        {/* 🔹 Total dentro do formulário */}
+        <div className="total-formulario">
+          Total: {totalHoras}h {totalMins}min — {formatarMoeda(totalEuros)}
+        </div>
+
+        {/* 🔹 Botão PDF */}
+        <div className="botoes" style={{ marginTop: "10px" }}>
+          <button onClick={gerarPDF} style={{ backgroundColor: "#0288d1", width: "100%" }}>
+            Gerar PDF
+          </button>
         </div>
       </div>
 
-      {/* Painel Direito - Tabela */}
-      <div className="calendario">
+      {/* Painel direito (tabela) */}
+      <div className="calendario" ref={tabelaRef}>
         <table>
           <thead>
             <tr>
               <th>Data</th>
+              <th>Dia</th>
               <th>Entrada</th>
               <th>Saída</th>
               <th>Resultado</th>
+              <th>Valor (€)</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {/* Caso não existam registros */}
             {registros.length === 0 ? (
               <tr>
-                <td colSpan="5" className="vazio">Nenhum registro ainda.</td>
+                <td colSpan="7" className="vazio">
+                  Nenhum registro ainda.
+                </td>
               </tr>
             ) : (
-              // Renderiza cada linha de registro
-              registros.map((r, i) => (
-                <tr key={i}>
-                  <td className={r.data === hoje ? "highlight" : ""}>{formatarDataBR(r.data)}</td>
-                  <td>{r.entrada}</td>
-                  <td>{r.saida}</td>
-                  <td>
-                    {r.vazio ? (
-                      <span className="vazio">Registro excluído (editar novamente)</span>
-                    ) : r.folga ? (
-                      <span className="folga">Folga 💤</span>
-                    ) : (
-                      `${r.horas}h ${r.minutos}min`
+              registros.map((r, i) =>
+                (r.horarios || []).map((h, j) => (
+                  <tr key={`${i}-${j}`}>
+                    {j === 0 && (
+                      <>
+                        <td rowSpan={r.horarios.length}>{formatarDataBR(r.data)}</td>
+                        <td rowSpan={r.horarios.length}>{getDiaSemana(r.data)}</td>
+                      </>
                     )}
-                  </td>
-                  <td className="acoes">
-                    <button onClick={() => editarRegistro(i)}>Editar</button>
-                    <button className="excluir" onClick={() => excluirRegistro(i)}>Excluir</button>
-                  </td>
-                </tr>
-              ))
+                    <td>{h.entrada}</td>
+                    <td>{h.saida}</td>
+                    <td>
+                      {h.horas}h {h.minutos}min
+                    </td>
+                    <td>{formatarMoeda(h.valor)}</td>
+                    <td className="acoes">
+                      <button onClick={() => editarRegistro(i, j)}>Editar</button>
+                      <button className="excluir" onClick={() => excluirRegistro(i, j)}>
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )
             )}
           </tbody>
         </table>
+
+        {/* 🔹 Observação vinculada à data */}
+        <div style={{ marginTop: "10px" }}>
+          <label>Observações do dia {formatarDataBR(data)}:</label>
+          <textarea
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+            rows="4"
+            style={{ width: "100%", resize: "vertical" }}
+            placeholder="Digite observações para este dia..."
+          />
+        </div>
       </div>
     </div>
   );

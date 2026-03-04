@@ -1,68 +1,213 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
+/* ---------------------- Reset básico ---------------------- */
+* {
+  box-sizing: border-box;
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  padding: 0;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+body, html, #root {
+  height: 100%;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+}
+
+/* ---------------------- Layout principal ---------------------- */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden; /* evita scroll da página inteira */
+}
+
+/* ---------------------- Painel esquerdo: formulário fixo ---------------------- */
+.formulario {
+  width: 320px;
+  background: #ffffff;
+  padding: 25px;
+  border-right: 2px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* sombra sutil à direita */
+  flex-shrink: 0;
+  border-radius: 0 10px 10px 0;
+}
+
+.formulario h1 {
+  margin-bottom: 15px;
+  font-size: 1.6rem;
+  color: #1976d2;
+}
+
+/* Inputs e textarea */
+input[type="number"],
+input[type="time"],
+input[type="date"],
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  transition: 0.2s all;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #1976d2;
+  outline: none;
+  box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+}
+
+/* Campo duplo horas/minutos */
+.duplo-campo {
+  display: flex;
+  gap: 5%;
+}
+
+.duplo-campo input {
+  width: 47.5%;
+}
+
+/* ---------------------- Botões ---------------------- */
+.botoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-weight: 600;
+  color: white;
+  transition: 0.2s all;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.btn-add {
+  background: linear-gradient(90deg, #42a5f5, #1976d2);
+}
+
+.btn-add:hover {
+  background: linear-gradient(90deg, #64b5f6, #2196f3);
+}
+
+.btn-clear {
+  background: linear-gradient(90deg, #ef5350, #d32f2f);
+}
+
+.btn-clear:hover {
+  background: linear-gradient(90deg, #f44336, #e53935);
+}
+
+/* ---------------------- Total dentro do formulário ---------------------- */
+.total-formulario {
+  margin-top: 12px;
+  padding: 12px;
+  background: #1976d2;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ---------------------- Painel direito: tabela e observações ---------------------- */
+.calendario {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f9f9f9;
+}
+
+/* Tabela moderna */
+.calendario table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-bottom: 12px;
+}
+
+.calendario th, .calendario td {
+  padding: 10px;
+  text-align: center;
+}
+
+.calendario th {
+  background: #1976d2;
+  color: white;
+  font-weight: 600;
+}
+
+.calendario td {
+  background: #e3f2fd; /* 🔹 azul clarinho, nova cor */
+  border-bottom: 1px solid #cfd8dc;
+}
+
+/* Linhas alternadas */
+.calendario tbody tr:nth-child(even) td {
+   background: #bbdefb; /* 🔹 azul um pouco mais forte, harmoniza com a paleta */
+}
+
+/* Ações dos botões da tabela */
+.acoes button {
+  margin: 2px;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+  border-radius: 5px;
+}
+
+.acoes .excluir {
+  background: #ef5350;
+}
+
+/* ---------------------- Observações por data ---------------------- */
+.calendario textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cfd8dc;
+  resize: vertical;
+  transition: 0.2s all;
+}
+
+.calendario textarea:focus {
+  border-color: #1976d2;
+  outline: none;
+  box-shadow: 0 0 5px rgba(25,118,210,0.3);
+}
+
+/* ---------------------- Scroll moderno */
+.calendario::-webkit-scrollbar {
+  width: 8px;
+}
+
+.calendario::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.calendario::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+}
+
+/* ---------------------- Responsividade mínima desktop ---------------------- */
+@media (max-width: 1024px) {
+  .app {
+    flex-direction: column;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+  .formulario {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+    border-radius: 0;
   }
 }
