@@ -165,7 +165,7 @@ button {
 }
 
 .acoes .excluir {
-  background: #ef5350;
+  background: #be0805;
 }
 
 /* ---------------------- Observações por data ---------------------- */
@@ -174,7 +174,7 @@ button {
   min-height: 100px;
   padding: 10px;
   border-radius: 6px;
-  border: 1px solid #cfd8dc;
+  border: 1px solid #06a0e2;
   resize: vertical;
   transition: 0.2s all;
 }
@@ -207,7 +207,7 @@ button {
   .formulario {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #251818;
     border-radius: 0;
   }
 }

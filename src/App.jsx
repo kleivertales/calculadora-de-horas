@@ -374,7 +374,9 @@ function App() {
                     </td>
                     <td>{formatarMoeda(h.valor)}</td>
                     <td className="acoes">
-                      <button onClick={() => editarRegistro(i, j)}>Editar</button>
+                      <button onClick={() => editarRegistro(i, j)} style={{ backgroundColor: "#1679ae" }}>
+                        Editar
+                      </button>
                       <button className="excluir" onClick={() => excluirRegistro(i, j)}>
                         Excluir
                       </button>
