@@ -13,9 +13,7 @@ body, html, #root {
 
 /* ---------------------- Layout principal ---------------------- */
 .app {
-  display: flex;
-  height: 100vh;
-  overflow: hidden; /* evita scroll da página inteira */
+  min-height: 100vh;
 }
 
 /* ---------------------- Painel esquerdo: formulário fixo ---------------------- */
@@ -209,5 +207,76 @@ button {
     border-right: none;
     border-bottom: 1px solid #251818;
     border-radius: 0;
+  }
+}
+
+/* ---------------------- MOBILE (telemóveis) ---------------------- */
+@media (max-width: 768px) {
+
+  /* Layout geral */
+  .app {
+    flex-direction: column;
+    height: auto; /* remove problema do 100vh */
+    overflow: visible;
+  }
+
+  /* Formulário ocupa tudo */
+  .formulario {
+    width: 100%;
+    border-right: none;
+    border-radius: 0;
+    padding: 15px;
+  }
+
+  /* Calendário também */
+  .calendario {
+    padding: 10px;
+  }
+
+  /* Inputs lado a lado → vertical */
+  .duplo-campo {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .duplo-campo input {
+    width: 100%;
+  }
+
+  /* Botões empilhados */
+  .botoes {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  /* TABELA RESPONSIVA 🔥 */
+  .calendario {
+    overflow-x: auto;
+  }
+
+  .calendario table {
+    min-width: 600px; /* permite scroll horizontal */
+  }
+
+  /* Texto menor no mobile */
+  .calendario th,
+  .calendario td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  /* Ajuste do título */
+  .formulario h1 {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  /* Total */
+  .total-formulario {
+    font-size: 0.95rem;
+    padding: 10px;
   }
 }
