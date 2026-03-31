@@ -7,10 +7,11 @@
   "homepage": "https://kleivertales.github.io/calculadora-de-horas/",
 
   "scripts": {
-    "build": "vite build",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d dist"
+},
 
   "dependencies": {
     "jspdf": "^4.1.0",
