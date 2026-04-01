@@ -13,10 +13,11 @@ body, html, #root {
 
 /* ---------------------- Layout principal ---------------------- */
 .app {
+  display: flex;
   min-height: 100vh;
 }
 
-/* ---------------------- Painel esquerdo: formulário fixo ---------------------- */
+/* ---------------------- Painel esquerdo ---------------------- */
 .formulario {
   width: 320px;
   background: #ffffff;
@@ -26,9 +27,12 @@ body, html, #root {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* sombra sutil à direita */
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
   flex-shrink: 0;
   border-radius: 0 10px 10px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .formulario h1 {
@@ -37,27 +41,21 @@ body, html, #root {
   color: #1976d2;
 }
 
-/* Inputs e textarea */
-input[type="number"],
-input[type="time"],
-input[type="date"],
-textarea {
+/* Inputs */
+input, textarea {
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 10px;
   border: 1px solid #cfd8dc;
   border-radius: 6px;
-  transition: 0.2s all;
 }
 
-input:focus,
-textarea:focus {
+input:focus, textarea:focus {
   border-color: #1976d2;
   outline: none;
-  box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
 }
 
-/* Campo duplo horas/minutos */
+/* Duplo campo */
 .duplo-campo {
   display: flex;
   gap: 5%;
@@ -67,70 +65,49 @@ textarea:focus {
   width: 47.5%;
 }
 
-/* ---------------------- Botões ---------------------- */
+/* Botões */
 .botoes {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
 }
 
 button {
-  padding: 10px 15px;
+  padding: 10px;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
   color: white;
-  transition: 0.2s all;
+  cursor: pointer;
 }
 
 .btn-add {
-  background: linear-gradient(90deg, #42a5f5, #1976d2);
-}
-
-.btn-add:hover {
-  background: linear-gradient(90deg, #64b5f6, #2196f3);
+  background: #1976d2;
 }
 
 .btn-clear {
-  background: linear-gradient(90deg, #ef5350, #d32f2f);
+  background: #d32f2f;
 }
 
-.btn-clear:hover {
-  background: linear-gradient(90deg, #f44336, #e53935);
-}
-
-/* ---------------------- Total dentro do formulário ---------------------- */
+/* Total */
 .total-formulario {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: 10px;
+  padding: 10px;
   background: #1976d2;
   color: white;
-  font-weight: bold;
   text-align: center;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 6px;
 }
 
-/* ---------------------- Painel direito: tabela e observações ---------------------- */
+/* ---------------------- Calendário ---------------------- */
 .calendario {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   padding: 20px;
   overflow-y: auto;
-  background: #f9f9f9;
 }
 
-/* Tabela moderna */
+/* Tabela */
 .calendario table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  margin-bottom: 12px;
+  border-collapse: collapse;
 }
 
 .calendario th, .calendario td {
@@ -141,109 +118,80 @@ button {
 .calendario th {
   background: #1976d2;
   color: white;
-  font-weight: 600;
 }
 
 .calendario td {
-  background: #e3f2fd; /* 🔹 azul clarinho, nova cor */
-  border-bottom: 1px solid #cfd8dc;
+  background: #e3f2fd;
 }
 
-/* Linhas alternadas */
+/* Zebra (desktop) */
 .calendario tbody tr:nth-child(even) td {
-   background: #bbdefb; /* 🔹 azul um pouco mais forte, harmoniza com a paleta */
+  background: #bbdefb;
 }
 
-/* Ações dos botões da tabela */
+.calendario tbody tr:nth-child(odd) td {
+  background: #e3f2fd;
+}
+
+/* Ações */
 .acoes button {
   margin: 2px;
   padding: 5px 8px;
-  font-size: 0.85rem;
-  border-radius: 5px;
+  font-size: 0.8rem;
 }
 
 .acoes .excluir {
-  background: #be0805;
+  background: red;
 }
 
-/* ---------------------- Observações por data ---------------------- */
-.calendario textarea {
-  width: 100%;
-  min-height: 100px;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #06a0e2;
-  resize: vertical;
-  transition: 0.2s all;
-}
+/* ---------------------- RESPONSIVO ---------------------- */
 
-.calendario textarea:focus {
-  border-color: #1976d2;
-  outline: none;
-  box-shadow: 0 0 5px rgba(25,118,210,0.3);
-}
-
-/* ---------------------- Scroll moderno */
-.calendario::-webkit-scrollbar {
-  width: 8px;
-}
-
-.calendario::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
-  border-radius: 4px;
-}
-
-.calendario::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.05);
-}
-
-/* ---------------------- Responsividade mínima desktop ---------------------- */
+/* Tablet */
 @media (max-width: 1024px) {
   .app {
     flex-direction: column;
   }
+
   .formulario {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #251818;
     border-radius: 0;
   }
 }
 
-/* ---------------------- MOBILE (telemóveis) ---------------------- */
+/* Mobile */
 @media (max-width: 768px) {
 
-  /* Layout geral */
+  /* Zebra mobile (cards) */
+.calendario tr:nth-child(even) {
+  background: #f5f5f5;
+}
+
+.calendario tr:nth-child(odd) {
+  background: #ffffff;
+}
+
   .app {
     flex-direction: column;
-    height: auto; /* remove problema do 100vh */
-    overflow: visible;
   }
 
-  /* Formulário ocupa tudo */
   .formulario {
     width: 100%;
-    border-right: none;
-    border-radius: 0;
     padding: 15px;
   }
 
-  /* Calendário também */
   .calendario {
     padding: 10px;
   }
 
-  /* Inputs lado a lado → vertical */
   .duplo-campo {
     flex-direction: column;
-    gap: 10px;
   }
 
   .duplo-campo input {
     width: 100%;
   }
 
-  /* Botões empilhados */
   .botoes {
     flex-direction: column;
   }
@@ -252,31 +200,76 @@ button {
     width: 100%;
   }
 
-  /* TABELA RESPONSIVA 🔥 */
-  .calendario {
-    overflow-x: auto;
-  }
+  .calendario tr {
+  display: block;
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-left: 4px solid #1976d2;
+}
+
+  /* ----------- CARDS ----------- */
 
   .calendario table {
-    min-width: 600px; /* permite scroll horizontal */
+    display: none;
   }
 
-  /* Texto menor no mobile */
-  .calendario th,
+  .calendario tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .calendario tr {
+    display: block;
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
   .calendario td {
-    padding: 8px;
-    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    background: transparent;
+    border: none;
   }
 
-  /* Ajuste do título */
-  .formulario h1 {
-    font-size: 1.3rem;
-    text-align: center;
+  .calendario td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #1976d2;
   }
 
-  /* Total */
-  .total-formulario {
-    font-size: 0.95rem;
-    padding: 10px;
+  .acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
+}
+
+/* ---------------------- FIX DESKTOP (IMPORTANTE) ---------------------- */
+.calendario table {
+  display: table;
+}
+
+.calendario thead {
+  display: table-header-group;
+}
+
+.calendario tbody {
+  display: table-row-group;
+}
+
+.calendario tr {
+  display: table-row;
+}
+
+.calendario td,
+.calendario th {
+  display: table-cell;
 }

@@ -44,6 +44,7 @@ function App() {
 
   // 🔹 Ref para tabela, para rolagem automática
   const tabelaRef = useRef(null);
+  const ultimoRegistroRef = useRef(null);
 
   // ---------------------- Persistência ----------------------
   useEffect(() => {
@@ -59,6 +60,13 @@ function App() {
     const registroDia = registros.find((r) => r.data === data);
     setObservacao(registroDia?.observacao || "");
   }, [data, registros]);
+ // ---------------------- Rolar para o último registro adicionado ----------------------
+  useEffect(() => {
+  ultimoRegistroRef.current?.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+}, [registros]);
 
   // ---------------------- Funções auxiliares ----------------------
   const formatarDataBR = (dataISO) => {
@@ -256,15 +264,32 @@ function App() {
       <div className="formulario">
         <h1>Controle de Horas</h1>
 
-        <label>Valor por hora (€):</label>
+        <label>Valor por hora (€): {formatarMoeda(valorHora)} </label>
         <input
-          ref={valorHoraRef}
-          type="number"
-          value={valorHora}
-          onChange={(e) => setValorHora(parseFloat(e.target.value) || 0)}
-          step="0.01"
-          onKeyDown={(e) => handleKeyDown(e, dataRef)}
-        />
+  ref={valorHoraRef}
+  type="text"
+  inputMode="decimal"
+  value={valorHora}
+  onChange={(e) => {
+    let valor = e.target.value;
+
+    // Permite apenas números, vírgula e ponto
+    valor = valor.replace(/[^0-9.,]/g, "");
+
+    // Substitui vírgula por ponto
+    valor = valor.replace(",", ".");
+
+    setValorHora(valor);
+  }}
+  onBlur={(e) => {
+    let numero = parseFloat(e.target.value);
+
+    if (isNaN(numero)) numero = 0;
+
+    setValorHora(numero.toFixed(2)); // formata 2 casas
+  }}
+  onKeyDown={(e) => handleKeyDown(e, dataRef)}
+/>
 
         <label>Data:</label>
         <input
@@ -350,42 +375,60 @@ function App() {
               <th>Ações</th>
             </tr>
           </thead>
-          <tbody>
-            {registros.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="vazio">
-                  Nenhum registro ainda.
-                </td>
-              </tr>
-            ) : (
-              registros.map((r, i) =>
-                (r.horarios || []).map((h, j) => (
-                  <tr key={`${i}-${j}`}>
-                    {j === 0 && (
-                      <>
-                        <td rowSpan={r.horarios.length}>{formatarDataBR(r.data)}</td>
-                        <td rowSpan={r.horarios.length}>{getDiaSemana(r.data)}</td>
-                      </>
-                    )}
-                    <td>{h.entrada}</td>
-                    <td>{h.saida}</td>
-                    <td>
-                      {h.horas}h {h.minutos}min
-                    </td>
-                    <td>{formatarMoeda(h.valor)}</td>
-                    <td className="acoes">
-                      <button onClick={() => editarRegistro(i, j)} style={{ backgroundColor: "#1679ae" }}>
-                        Editar
-                      </button>
-                      <button className="excluir" onClick={() => excluirRegistro(i, j)}>
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )
-            )}
-          </tbody>
+        <tbody>
+  {registros.length === 0 ? (
+    <tr>
+      <td colSpan="7" className="vazio">
+        Nenhum registro ainda.
+      </td>
+    </tr>
+  ) : (
+    registros.map((r, i) =>
+      (r.horarios || []).map((h, j) => (
+        <tr
+  key={`${i}-${j}`}
+  ref={
+    i === registros.length - 1 &&
+    j === r.horarios.length - 1
+      ? ultimoRegistroRef
+      : null
+  }
+>
+          {j === 0 && (
+            <>
+              <td data-label="Data" rowSpan={r.horarios.length}>
+                {formatarDataBR(r.data)}
+              </td>
+              <td data-label="Dia" rowSpan={r.horarios.length}>
+                {getDiaSemana(r.data)}
+              </td>
+            </>
+          )}
+
+          <td data-label="Entrada">{h.entrada}</td>
+          <td data-label="Saída">{h.saida}</td>
+
+          <td data-label="Resultado">
+            {h.horas}h {h.minutos}min
+          </td>
+
+          <td data-label="Valor (€)">
+            {formatarMoeda(h.valor)}
+          </td>
+
+          <td className="acoes" data-label="Ações">
+            <button onClick={() => editarRegistro(i, j)} style={{ backgroundColor: "#1679ae" }}>
+              Editar
+            </button>
+            <button className="excluir" onClick={() => excluirRegistro(i, j)}>
+              Excluir
+            </button>
+          </td>
+        </tr>
+      ))
+    )
+  )}
+</tbody>
         </table>
 
         {/* 🔹 Observação vinculada à data */}
